@@ -58,17 +58,17 @@ impl Scanner {
 
     // --- primitives ---------------------------------------------------------------
 
-    fn at_end(&self) -> bool {
+    fn at_end(&self) -> bool { // checks if you have gotten to the end and returns true if there is nothing left
         self.current >= self.src.len()
     }
 
-    fn advance(&mut self) -> char {
+    fn advance(&mut self) -> char { // does the same function as cunsume in my lexer
         let c = self.src[self.current];
         self.current += 1;
         c
     }
 
-    fn matches(&mut self, expected: char) -> bool {
+    fn matches(&mut self, expected: char) -> bool {// peek then commit
         if self.at_end() || self.src[self.current] != expected {
             return false;
         }
@@ -76,15 +76,15 @@ impl Scanner {
         true
     }
 
-    fn peek(&self) -> char {
-        if self.at_end() {
+    fn peek(&self) -> char { // looks at the current character without consuming it
+        if self.at_end() {// if it is at the end it returns a null character
             '\0'
         } else {
             self.src[self.current]
         }
     }
 
-    fn peek_next(&self) -> char {
+    fn peek_next(&self) -> char {// the same as peek but looks further ahead
         if self.current + 1 >= self.src.len() {
             '\0'
         } else {
@@ -95,12 +95,13 @@ impl Scanner {
     fn add(&mut self, kind: TokenType) {
         self.tokens.push(Token {
             kind,
-            lexeme: self.src[self.start..self.current].iter().collect(),
-            line: self.line,
+            lexeme: self.src[self.start..self.current].iter().collect(), // same as (start,end,x.to_string)
+            line: self.line, // records this thing
         });
     }
 
-    fn error(&mut self, line: usize, message: &str) {
+    fn error(&mut self, line: usize, message: &str) { // omo only God's know sha but we will find out
         self.errors.push(format!("[line {}] Error: {}", line, message));
     }
+   
 }
