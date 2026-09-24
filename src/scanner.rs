@@ -91,6 +91,24 @@ impl Scanner {
         //            is reported at the line it opened on (5.1).
 
     fn string(&mut self) {
+    while self.current < self.input.len() && self.current != '"' { //as long as it is not at the end or it is not ta ""
+           if self.current == '\n' {
+            self.lin += 1; // if it is a mew line move it to the next line
+           }
+           else {
+            self.advance(); // consume it
+           }
+            // an erroe at this part what if it didnt hit the closing " that is an error it needs to be reported
+           if self.at_end(){
+            self.error(self.line, "You didnt close the string");
+           }
+           else{
+            self.advance(); // consuming the last "  I could over look this
+           }
+
+    }       
+    todo!("string")
+}
         
         todo!("string")
     }
