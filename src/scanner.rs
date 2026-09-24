@@ -28,31 +28,84 @@ impl Scanner {
     fn run(&mut self) {
         // TODO(you): drive the scan: read one token at a time until the source runs out, then
         //            add the EOF token. Spec 6.1 says which line EOF carries.
+        while self.current != self.at_end(){// run it as long as it is not at the end
+            self.start = self.current; // saving the beginning position 
+            self.scan_token();
+            self.current +=1; // so it moves
+        }
+
+        let eof_line = self.tokens.last().map(|t| t.line).unwrap_or(1); // asked for the line number if no then use the value or 1 
+
+        self.add(/'0'); // add eof to the end 
         todo!("run")
     }
 
-    fn scan_token(&mut self) {
-        // TODO(you): recognise one token. Spec 1.2 lists every token type, 1.1 covers
+    // TODO(you): recognise one token. Spec 1.2 lists every token type, 1.1 covers
         //            whitespace and comments, and an unrecognised character is 'Character is
         //            not part of any token.' (5.1).
-        todo!("scan_token")
+
+    fn scan_token(&mut self) { // THIS IS  LIKE CONSUME PUNCTUATION FUNCTION AND MAYBE NEXT_TOKEN
+    let c = self.advance(); 
+    match c {// mathcing the characters to what it would be
+     '(' => self.add(TokenType::LPAREN),
+     ')' => self.add(TokenType::RPAREN),
+     '{' => self.add(TokenType::LBRACE),
+     '}' => self.add(TokenType::RBRACE),
+     ',' => self.add(TokenType::COMMA),
+     ';' => self.add(TokenType::SEMICOLON),
+     '+' => self.add(TokenType::PLUS),
+     '-' => self.add(TokenType::MINUS),
+     '*' => self.add(TokenType::STAR),
+     '!' => self.add(TokenType::BANG),
+     '=' => self.add(TokenType::EQUAL),
+     '<' => self.add(TokenType::LESS),
+     '>' => self.add(TokenType::GREATER),
+
+    '/' => {
+        if self.matches('/') {
+            while !self.at_end() && self.peek() != '\n' {
+                self.advance();
+            }
+        } else {
+            self.add(TokenType::SLASH);
+        }
     }
+   // these are my white spaces
+   ' ' => (),
+   '\r' => (),
+   '\t' => (),
+   '\n' => self.line += 1, // move to a new line
+
+    '"' => self.string(), // that that word is a string these have there functions
+     '0'..='9' => self.number(), // it is a number simipler to self::is_number_start in my lexer kinda
+     'a'..='z' => self.identifier(),
+     'A'..='Z' => self.identifier(),
+      '_' => self.identifier(), 
+     _ => self.error(self.line, "Character not idnetified"), // anything else error
+
+    
+}
+    todo!("scan_token");
+}
+    // TODO(you): scan a string literal. A string may span lines (1.5); an unterminated one
+        //            is reported at the line it opened on (5.1).
 
     fn string(&mut self) {
-        // TODO(you): scan a string literal. A string may span lines (1.5); an unterminated one
-        //            is reported at the line it opened on (5.1).
+        
         todo!("string")
     }
+    // TODO(you): scan a number literal: digits, then a fractional part only when a digit
+        //            follows the dot (1.4).
 
     fn number(&mut self) {
-        // TODO(you): scan a number literal: digits, then a fractional part only when a digit
-        //            follows the dot (1.4).
+        
         todo!("number")
     }
+    // TODO(you): scan an identifier, then decide whether it is a keyword; keyword() in
+        //            token.rs does the lookup (1.2, 1.3).
 
     fn identifier(&mut self) {
-        // TODO(you): scan an identifier, then decide whether it is a keyword; keyword() in
-        //            token.rs does the lookup (1.2, 1.3).
+        
         todo!("identifier")
     }
 
