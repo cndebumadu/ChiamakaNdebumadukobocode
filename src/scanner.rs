@@ -118,7 +118,7 @@ impl Scanner {
     fn number(&mut self) {// hmmm similer to identifier with the same consept as my consume_number
     while self.peek().is_digit(10){ 
         self.advance();
-//reflection question 
+         //reflection question 
         if self.peek() == '.' && self.peek().is_digit(10){
             self.advance();
             while self.peek().is_digit(10){
@@ -135,6 +135,16 @@ impl Scanner {
         //            token.rs does the lookup (1.2, 1.3).
 
     fn identifier(&mut self) {
+        while self.peek().is_alphanumeric() || self.peek() == '_' {
+        self.advance();
+    }
+
+    let text: String = self.src[self.start..self.current].iter().collect();
+
+    match keyword(&text) {
+        Some(kind) => self.add(kind),
+        None => self.add(TokenType::Identifier),
+    }
         
         todo!("identifier")
     }
