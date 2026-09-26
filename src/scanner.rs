@@ -107,7 +107,7 @@ impl Scanner {
            }
 
     }       
-    todo!("string")
+    
 }
         
         todo!("string")
@@ -115,10 +115,22 @@ impl Scanner {
     // TODO(you): scan a number literal: digits, then a fractional part only when a digit
         //            follows the dot (1.4).
 
-    fn number(&mut self) {
-        
-        todo!("number")
+    fn number(&mut self) {// hmmm similer to identifier with the same consept as my consume_number
+    while self.peek().is_digit(10){ 
+        self.advance();
+//reflection question 
+        if self.peek() == '.' && self.peek().is_digit(10){
+            self.advance();
+            while self.peek().is_digit(10){
+                self.advance();
+            }
+
     }
+
+    self.add(TokenType::Number);
+   
+    todo!("number")
+} }
     // TODO(you): scan an identifier, then decide whether it is a keyword; keyword() in
         //            token.rs does the lookup (1.2, 1.3).
 
