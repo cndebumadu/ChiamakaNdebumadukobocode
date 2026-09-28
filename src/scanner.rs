@@ -36,9 +36,13 @@ impl Scanner {
 
         let eof_line = self.tokens.last().map(|t| t.line).unwrap_or(1); // asked for the line number if no then use the value or 1 
 
-        self.add(/'0'); // add eof to the end 
+        self.tokens.push(Token {
+        kind: TokenType::Eof,
+        lexeme: String::new(),
+        line: eof_line,
+    }); 
         todo!("run")
-    }
+}
 
     // TODO(you): recognise one token. Spec 1.2 lists every token type, 1.1 covers
         //            whitespace and comments, and an unrecognised character is 'Character is
