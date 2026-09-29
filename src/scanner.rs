@@ -51,19 +51,19 @@ impl Scanner {
     fn scan_token(&mut self) { // THIS IS  LIKE CONSUME PUNCTUATION FUNCTION AND MAYBE NEXT_TOKEN
     let c = self.advance(); 
     match c {// mathcing the characters to what it would be
-     '(' => self.add(TokenType::LPAREN),
-     ')' => self.add(TokenType::RPAREN),
-     '{' => self.add(TokenType::LBRACE),
-     '}' => self.add(TokenType::RBRACE),
-     ',' => self.add(TokenType::COMMA),
-     ';' => self.add(TokenType::SEMICOLON),
-     '+' => self.add(TokenType::PLUS),
-     '-' => self.add(TokenType::MINUS),
-     '*' => self.add(TokenType::STAR),
-     '!' => self.add(TokenType::BANG),
-     '=' => self.add(TokenType::EQUAL),
-     '<' => self.add(TokenType::LESS),
-     '>' => self.add(TokenType::GREATER),
+     '(' => self.add(TokenType::LParen),
+     ')' => self.add(TokenType::RParen),
+     '{' => self.add(TokenType::LBrace),
+     '}' => self.add(TokenType::RBrace),
+     ',' => self.add(TokenType::Comma),
+     ';' => self.add(TokenType::Semicolon),
+     '+' => self.add(TokenType::Plus),
+     '-' => self.add(TokenType::Minus),
+     '*' => self.add(TokenType::Star),
+     '!' => self.add(TokenType::Bang),
+     '=' => self.add(TokenType::Equal),
+     '<' => self.add(TokenType::Less),
+     '>' => self.add(TokenType::Greater),
 
     '/' => {
         if self.matches('/') {
@@ -71,7 +71,7 @@ impl Scanner {
                 self.advance();
             }
         } else {
-            self.add(TokenType::SLASH);
+            self.add(TokenType::Slash);
         }
     }
    // these are my white spaces
