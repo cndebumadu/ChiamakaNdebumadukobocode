@@ -41,7 +41,7 @@ impl Scanner {
         lexeme: String::new(),
         line: eof_line,
     }); 
-        todo!("run")
+        
 }
 
     // TODO(you): recognise one token. Spec 1.2 lists every token type, 1.1 covers
@@ -85,56 +85,60 @@ impl Scanner {
      'a'..='z' => self.identifier(),
      'A'..='Z' => self.identifier(),
       '_' => self.identifier(), 
-     _ => self.error(self.line, "Character not idnetified"), // anything else error
+     _ => self.error(self.line, "Character is not part of any token."), // anything else error
 
     
 }
-    todo!("scan_token");
+
 }
     // TODO(you): scan a string literal. A string may span lines (1.5); an unterminated one
         //            is reported at the line it opened on (5.1).
 
     fn string(&mut self) {
-    while self.current < self.input.len() && self.current != '"' { //as long as it is not at the end or it is not ta ""
-           if self.current == '\n' {
+    while !self.at_end() && self.peek() != '"'{ //as long as it is not at the end or it is not ta ""
+           if self.peek() == '\n' { //relised i was using current instaead of peak so it wont accept a character
             self.lin += 1; // if it is a mew line move it to the next line
            }
-           else {
+           
             self.advance(); // consume it
-           }
+           
             // an erroe at this part what if it didnt hit the closing " that is an error it needs to be reported
            if self.at_end(){
-            self.error(self.line, "You didnt close the string");
+            self.error(self.line, "String is never closed");
+            return;
            }
-           else{
-            self.advance(); // consuming the last "  I could over look this
-           }
-
-    }       
+        }
+           let current_line= self.line;
+           self.advance();
+           self.add(TokenType::Str);
+           self.line = start_line; 
+           self.line = current_line;
+          
     
 }
         
-        todo!("string")
-    }
+        
+}
     // TODO(you): scan a number literal: digits, then a fractional part only when a digit
         //            follows the dot (1.4).
 
     fn number(&mut self) {// hmmm similer to identifier with the same consept as my consume_number
     while self.peek().is_digit(10){ 
         self.advance();
-         //reflection question 
-        if self.peek() == '.' && self.peek().is_digit(10){
-            self.advance();
+    }
+         //reflection question // fraction
+        if self.peek() == '.' && self.peek_next().is_digit(10){
+            self.advance(); // consume
             while self.peek().is_digit(10){
                 self.advance();
             }
 
-    }
+    
 
     self.add(TokenType::Number);
    
-    todo!("number")
-} }
+
+    } }
     // TODO(you): scan an identifier, then decide whether it is a keyword; keyword() in
         //            token.rs does the lookup (1.2, 1.3).
 
@@ -143,14 +147,14 @@ impl Scanner {
         self.advance();
     }
 
-    let text: String = self.src[self.start..self.current].iter().collect();
+    let text: String = self.src[self.start..self.current].iter().collect(); // mixed it up
 
     match keyword(&text) {
         Some(kind) => self.add(kind),
         None => self.add(TokenType::Identifier),
     }
         
-        todo!("identifier")
+    
     }
 
     // --- primitives ---------------------------------------------------------------
@@ -200,5 +204,5 @@ impl Scanner {
     fn error(&mut self, line: usize, message: &str) { // omo only God's know sha but we will find out
         self.errors.push(format!("[line {}] Error: {}", line, message));
     }
-   
 }
+
