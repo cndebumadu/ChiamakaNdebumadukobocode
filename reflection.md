@@ -13,7 +13,8 @@ computed at src/scanner.rs:37, where run() takes self.tokens.last().map(|t| t.li
 
 A real bug/ my problems
 
-the scanner didn't recognise double characters so from line 70 to line 89. so each of them neaded to look ahead before deciding what the token should be.so i made it check for a '=' operator.
+the scanner didn't recognise double characters so from line 70 to line 89. so each of them neaded to look ahead before deciding what the token should be.so i made it check for a '=' operator. commit ee679ea  commit 209dcd2 
+
 when doing the number peek ahead function i just used peek() instead of peek_next()to see after the decimal point which placed a problem.
 
 I also had looping issues where lines wouldnt function properly because they wher inside a loop 
