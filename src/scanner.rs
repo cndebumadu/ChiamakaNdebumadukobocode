@@ -60,10 +60,34 @@ impl Scanner {
      '+' => self.add(TokenType::Plus),
      '-' => self.add(TokenType::Minus),
      '*' => self.add(TokenType::Star),
-     '!' => self.add(TokenType::Bang),
-     '=' => self.add(TokenType::Equal),
-     '<' => self.add(TokenType::Less),
-     '>' => self.add(TokenType::Greater),
+     '!' => { // to allow it to identify 2 
+        if self.matches('=') {
+            self.add(TokenType::BangEqual);
+        } else {
+            self.add(TokenType::Bang);
+        }
+    }
+     '=' => {
+        if self.matches('=') {
+            self.add(TokenType::EqualEqual);
+        } else {
+            self.add(TokenType::Equal);
+        }
+    }
+     '<' => {
+        if self.matches('=') {
+            self.add(TokenType::LessEqual);
+        } else {
+            self.add(TokenType::Less);
+        }
+    }
+     '>' => {
+        if self.matches('=') {
+            self.add(TokenType::GreaterEqual);
+        } else {
+            self.add(TokenType::Greater);
+        }
+    }
 
     '/' => {
         if self.matches('/') {
