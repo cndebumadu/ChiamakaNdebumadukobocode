@@ -28,10 +28,10 @@ impl Scanner {
     fn run(&mut self) {
         // TODO(you): drive the scan: read one token at a time until the source runs out, then
         //            add the EOF token. Spec 6.1 says which line EOF carries.
-        while self.current != self.at_end(){// run it as long as it is not at the end
+        while !self.at_end(){// run it as long as it is not at the end
             self.start = self.current; // saving the beginning position 
-            self.scan_token();
-            self.current +=1; // so it moves
+            self.scan_token(); // so it moves
+                              
         }
 
         let eof_line = self.tokens.last().map(|t| t.line).unwrap_or(1); // asked for the line number if no then use the value or 1 
@@ -95,16 +95,17 @@ impl Scanner {
         //            is reported at the line it opened on (5.1).
 
     fn string(&mut self) {
+        let start_line = self.line;
     while !self.at_end() && self.peek() != '"'{ //as long as it is not at the end or it is not ta ""
            if self.peek() == '\n' { //relised i was using current instaead of peak so it wont accept a character
-            self.lin += 1; // if it is a mew line move it to the next line
+            self.line += 1; // if it is a mew line move it to the next line
            }
            
             self.advance(); // consume it
            
             // an erroe at this part what if it didnt hit the closing " that is an error it needs to be reported
            if self.at_end(){
-            self.error(self.line, "String is never closed");
+            self.error(start_line, "String is never closed.");
             return;
            }
         }
@@ -118,7 +119,7 @@ impl Scanner {
 }
         
         
-}
+
     // TODO(you): scan a number literal: digits, then a fractional part only when a digit
         //            follows the dot (1.4).
 
@@ -132,13 +133,14 @@ impl Scanner {
             while self.peek().is_digit(10){
                 self.advance();
             }
+        }
 
     
 
     self.add(TokenType::Number);
    
 
-    } }
+     }
     // TODO(you): scan an identifier, then decide whether it is a keyword; keyword() in
         //            token.rs does the lookup (1.2, 1.3).
 
@@ -154,7 +156,6 @@ impl Scanner {
         None => self.add(TokenType::Identifier),
     }
         
-    
     }
 
     // --- primitives ---------------------------------------------------------------
@@ -204,5 +205,5 @@ impl Scanner {
     fn error(&mut self, line: usize, message: &str) { // omo only God's know sha but we will find out
         self.errors.push(format!("[line {}] Error: {}", line, message));
     }
-}
 
+}
