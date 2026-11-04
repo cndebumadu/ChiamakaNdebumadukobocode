@@ -43,24 +43,113 @@ type Parsed<T> = Result<T, ()>;
 
 impl Parser {
     // --- declarations and statements ------------------------------------------------
-
-    fn declaration(&mut self) -> Parsed<Stmt> {
-        // TODO(you): spec 3.1: a declaration is a fun, a var, or a statement. This is also
+ // TODO(you): spec 3.1: a declaration is a fun, a var, or a statement. This is also
         //            where an error is caught and synchronise() runs.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
-        self.statement()
+    fn declaration(&mut self) -> Parsed<Stmt> {
+     let result = if self.matches(&[TokenType::Fun]) { // if the current token is a function declaration, then call the function to parse it
+        self.fun_declaration()
+    } else if self.matches(&[TokenType::Var]) { // same thingzz
+        self.var_declaration()
+    } else {
+        self.statement() // treat it like an ordinary statement yass
+    };
+
+    if result.is_err() {
+        self.synchronise();
     }
 
-    fn fun_declaration(&mut self) -> Parsed<Stmt> {
-        // TODO(you): spec 3.1: a function declaration, its parameter list, and its body.
+    result
+}
+       
+      
+    }
+     // TODO(you): spec 3.1: a function declaration, its parameter list, and its body.
         //            Functions are hoisted into Program::functions.
-        todo!("fun_declaration")
+
+    fn fun_declaration(&mut self) -> Parsed<Stmt> {  
+    let line = self.previous().line; // gives us the fun token
+
+    let name = self.consume(
+        TokenType::Identifier,
+        "Expect function name."
+    )?;
+
+    self.consume(
+        TokenType::LParen,
+        "Expect '(' after function name."
+    )?;
+
+    let mut params = Vec::new(); // my empty vector shop
+
+    if !self.check(TokenType::RParen) {
+        loop {
+            let param = self.consume(
+                TokenType::Identifier,
+                "Expect parameter name."
+            )?;
+
+            params.push(param.lexeme);
+
+            if !self.matches(&[TokenType::Comma]) {
+                break;
+            }
+        }
     }
 
+    self.consume(
+        TokenType::RParen,
+        "Expect ')' after parameters."
+    )?;
+
+    self.consume(
+        TokenType::LBrace,
+        "Expect '{' before function body."
+    )?;
+
+    let body = self.block()?; // read the body
+
+    let index = self.program.functions.len(); // the next position available
+
+    self.program.functions.push(Function { // stores the completed function
+        name: name.lexeme.clone(),
+        params,
+        body,
+        line,
+    });
+
+    Ok(Stmt::Function { // make a statement that refers to the function using its index
+        index,
+        name: name.lexeme,
+        slot: None,
+    })
+}
+    }
+// TODO(you): spec 3.1: 'var' name ( '=' expression )? ';'
     fn var_declaration(&mut self) -> Parsed<Stmt> {
-        // TODO(you): spec 3.1: 'var' name ( '=' expression )? ';'
-        todo!("var_declaration")
+        let name = self.consume( //get variable name stores it in name
+        TokenType::Identifier,
+        "Expect variable name."
+    )?;
+
+    let initialiser = if self.matches(&[TokenType::Equal]) { // is my next token an = if there isnt stroes none
+        Some(self.expression()?)
+    } else {
+        None
+    };
+
+    self.consume( //ensures that it ends with a semi colon, if not reports an error
+        TokenType::Semicolon,
+        "Expect ';' after variable declaration."
+    )?;
+
+    Ok(Stmt::Var { // creates a variable statement with the name, initialiser and slot set to none
+        name,
+        initialiser,
+        slot: None,
+    })
+      
     }
 
     fn statement(&mut self) -> Parsed<Stmt> {
@@ -69,13 +158,48 @@ impl Parser {
         self.depth -= 1;
         result
     }
-
-    fn statement_inner(&mut self) -> Parsed<Stmt> {
-        // TODO(you): spec 3.1: pick the statement by its leading token.
+     // TODO(you): spec 3.1: pick the statement by its leading token.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
         // Named rather than misreported, so an `if` says what it is instead of failing
         // as a broken expression.
+
+    fn statement_inner(&mut self) -> Parsed<Stmt> {
+        if self.matches(&[TokenType::LBrace]) {
+        let body = self.block()?;
+
+        Ok(Stmt::Block {
+            body,
+            locals: 0,
+        }) // know a block is starting
+    } else if self.matches(&[TokenType::If]) {
+        self.if_statement()
+    } else if self.matches(&[TokenType::While]) {
+        self.while_statement()
+    } else if self.matches(&[TokenType::Return]) {
+        self.return_statement()
+    } else if self.matches(&[TokenType::Print]) {
+        let value = self.expression()?;
+
+        self.consume(
+            TokenType::Semicolon,
+            "Expect ';' after value."
+        )?;
+
+        Ok(Stmt::Print(value))
+    } else {
+        let expr = self.expression()?;
+
+        self.consume(
+            TokenType::Semicolon,
+            "Expect ';' after expression."
+        )?;
+
+        Ok(Stmt::Expression(expr))
+    }
+}
+    
+       
         if self.check(TokenType::LBrace) || self.check(TokenType::If)
             || self.check(TokenType::While) || self.check(TokenType::Return)
         {
@@ -92,16 +216,53 @@ impl Parser {
             Ok(Stmt::Expression(expr))
         }
     }
+        // TODO(you): spec 3.1: 'return' expression? ';'
 
     fn return_statement(&mut self) -> Parsed<Stmt> {
-        // TODO(you): spec 3.1: 'return' expression? ';'
-        todo!("return_statement")
+       let value = if self.check(TokenType::Semicolon) {
+        None
+     } else {
+        Some(self.expression()?)
+    };
+
+    self.consume( // endures the return statemnet ands with a semicolon
+        TokenType::Semicolon,
+        "Expect ';' after return value."
+    )?;
+
+    Ok(Stmt::Return(value))
+       
     }
+    // TODO(you): spec 3.1. The dangling else binds to the nearest unmatched if , the
+        //            recursion decides that, not the grammar.
 
     fn if_statement(&mut self) -> Parsed<Stmt> {
-        // TODO(you): spec 3.1. The dangling else binds to the nearest unmatched if , the
-        //            recursion decides that, not the grammar.
-        todo!("if_statement")
+        self.consume(
+        TokenType::LParen,
+        "Expect '(' after 'if'."
+    )?;
+
+    let condition = self.expression()?;
+
+    self.consume(
+        TokenType::RParen,
+        "Expect ')' after if condition."
+    )?;
+
+    let then_branch = Box::new(self.statement()?);
+
+    let else_branch = if self.matches(&[TokenType::Else]) {
+        Some(Box::new(self.statement()?))
+    } else {
+        None
+    };
+
+    Ok(Stmt::If {
+        condition,
+        then_branch,
+        else_branch,
+    }) 
+         
     }
 
     fn while_statement(&mut self) -> Parsed<Stmt> {
@@ -243,7 +404,7 @@ impl Parser {
 
     // --- primitives ---------------------------------------------------------------
 
-    fn matches(&mut self, kinds: &[TokenType]) -> bool {
+    fn matches(&mut self, kinds: &[TokenType]) -> bool { // it checks if the current token matches any token tyoe supplied
         for k in kinds {
             if self.check(*k) {
                 self.current += 1;
@@ -253,23 +414,23 @@ impl Parser {
         false
     }
 
-    fn check(&self, kind: TokenType) -> bool {
+    fn check(&self, kind: TokenType) -> bool { // if the current token is the token tyoe you are looking for
         !self.at_end() && self.peek().kind == kind
     }
 
-    fn at_end(&self) -> bool {
+    fn at_end(&self) -> bool { // if the current token is the end of file token
         self.peek().kind == TokenType::Eof
     }
 
-    fn peek(&self) -> &Token {
+    fn peek(&self) -> &Token { // returns the current token
         &self.tokens[self.current]
     }
 
-    fn previous(&self) -> Token {
+    fn previous(&self) -> Token { // returns the previous token
         self.tokens[self.current - 1].clone()
     }
 
-    fn consume(&mut self, kind: TokenType, message: &str) -> Parsed<Token> {
+    fn consume(&mut self, kind: TokenType, message: &str) -> Parsed<Token> { // consumes a token of a specific type or reports an error
         if self.check(kind) {
             self.current += 1;
             return Ok(self.previous());
@@ -278,12 +439,12 @@ impl Parser {
         Err(())
     }
 
-    fn error(&mut self, message: &str) {
+    fn error(&mut self, message: &str) { // reports an error at the current token
         let t = self.peek().clone();
         self.error_at(&t, message);
     }
 
-    fn error_at(&mut self, t: &Token, message: &str) {
+    fn error_at(&mut self, t: &Token, message: &str) { // reports an error at a specific token
         let at = if t.kind == TokenType::Eof {
             "end".to_string()
         } else {
