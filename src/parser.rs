@@ -229,12 +229,12 @@ impl Parser {
         TokenType::Semicolon,
         "Expect ';' after return value."
     )?;
-
+// TODO(you): spec 3.1. The dangling else binds to the nearest unmatched if , the
+        //            recursion decides that, not the grammar.
     Ok(Stmt::Return(value))
        
     }
-    // TODO(you): spec 3.1. The dangling else binds to the nearest unmatched if , the
-        //            recursion decides that, not the grammar.
+    
 
     fn if_statement(&mut self) -> Parsed<Stmt> {
         self.consume(
@@ -264,17 +264,48 @@ impl Parser {
     }) 
          
     }
-
+ // TODO(you): spec 3.1: 'while' '(' expression ')' statement
     fn while_statement(&mut self) -> Parsed<Stmt> {
-        // TODO(you): spec 3.1: 'while' '(' expression ')' statement
-        todo!("while_statement")
+        self.consume(
+        TokenType::LParen,
+        "Expect '(' after 'while'."
+    )?;
+
+    let condition = self.expression()?;
+
+    self.consume(
+        TokenType::RParen,
+        "Expect ')' after while condition."
+    )?;
+
+    let body = Box::new(self.statement()?);
+
+    Ok(Stmt::While {
+        condition,
+        body,
+    })
+       
+      
     }
 
     /// The `{` is already consumed. Declarations, not statements: a block is where a
     /// `var` most often appears, and the whole point of one is that the name dies at `}`.
+// TODO(you): spec 3.1: '{' declaration* '}'
     fn block(&mut self) -> Parsed<Vec<Stmt>> {
-        // TODO(you): spec 3.1: '{' declaration* '}'
-        todo!("block")
+        let mut statements = Vec::new();
+
+    while !self.check(TokenType::RBrace) && !self.at_end() {
+        statements.push(self.declaration()?);
+    }
+
+    self.consume(
+        TokenType::RBrace,
+        "Expect '}' after block."
+    )?;
+
+    Ok(statements)
+        
+     
     }
 
     // --- expressions, lowest precedence first --------------------------------------
@@ -295,33 +326,104 @@ impl Parser {
     /// not knowable until the `=` is reached: `a` and `a.b` and `f()` all start the same
     /// way. So the left side is parsed as an ordinary expression and *then* checked, which
     /// is the standard answer to a rule that is not LL(1).
-    fn assignment(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2. The left side parses as an ordinary expression and is checked
+    ///   // TODO(you): spec 3.2. The left side parses as an ordinary expression and is checked
         //            afterwards, because the rule is not LL(1).
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
-        self.or()
-    }
+    fn assignment(&mut self) -> Parsed<Expr> {
+      let expr = self.or()?;
 
-    fn or(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2, one rung of the precedence ladder.
+      if self.matches(&[TokenType::Equal]) {
+        let equals = self.previous().clone();
+
+        let value = Box::new(self.assignment()?);
+
+        match expr {
+            Expr::Variable { name, at } => {
+                Ok(Expr::Assign {
+                    name,
+                    value,
+                    at,
+                })
+            }
+
+            _ => {
+                self.error_at(&equals, "Invalid assignment target.");
+                Err(())
+            }
+        }
+    } else {
+        Ok(expr)
+    }
+      
+       
+    }
+// TODO(you): spec 3.2, one rung of the precedence ladder.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
-        self.and()
+    fn or(&mut self) -> Parsed<Expr> {
+         let mut expr = self.and()?;
+
+    while self.matches(&[TokenType::Or]) {
+        let operator = self.previous().clone();
+        let right = self.and()?;
+
+        expr = Expr::Logical {
+            left: Box::new(expr),
+            operator,
+            right: Box::new(right),
+        };
     }
+
+    Ok(expr)
+        
+    }
+     // TODO(you): spec 3.2, one rung of the precedence ladder.
+        // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
+        //            own week; the marking tests for it fail until you do.
 
     fn and(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2, one rung of the precedence ladder.
-        // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
-        //            own week; the marking tests for it fail until you do.
-        self.equality()
+        let mut expr = self.equality()?;
+
+    while self.matches(&[TokenType::And]) {
+        let operator = self.previous().clone();
+        let right = self.equality()?;
+
+        expr = Expr::Logical {
+            left: Box::new(expr),
+            operator,
+            right: Box::new(right),
+        };
     }
 
-    fn equality(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2, one rung of the precedence ladder.
+    Ok(expr)
+       
+       
+    }
+    // TODO(you): spec 3.2, one rung of the precedence ladder.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
-        self.comparison()
+
+    fn equality(&mut self) -> Parsed<Expr> {
+         let mut expr = self.comparison()?;
+
+    while self.matches(&[
+        TokenType::BangEqual,
+        TokenType::EqualEqual,
+    ]) {
+        let operator = self.previous().clone();
+        let right = self.comparison()?;
+
+        expr = Expr::Binary {
+            left: Box::new(expr),
+            operator,
+            right: Box::new(right),
+        };
+    }
+
+    Ok(expr)
+        
+      
     }
 
     fn comparison(&mut self) -> Parsed<Expr> {
