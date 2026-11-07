@@ -425,28 +425,88 @@ impl Parser {
         
       
     }
-
-    fn comparison(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2, one rung of the precedence ladder.
+  // TODO(you): spec 3.2, one rung of the precedence ladder.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
-        self.term()
+    fn comparison(&mut self) -> Parsed<Expr> {
+      let mut expr = self.term()?;
+
+    while self.matches(&[
+        TokenType::Greater,
+        TokenType::GreaterEqual,
+        TokenType::Less,
+        TokenType::LessEqual,
+    ]) {
+        let operator = self.previous().clone();
+        let right = self.term()?;
+
+        expr = Expr::Binary {
+            left: Box::new(expr),
+            operator,
+            right: Box::new(right),
+        };
+       
     }
+     // TODO(you): spec 3.2, one rung of the precedence ladder.
 
     fn term(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2, one rung of the precedence ladder.
-        todo!("term")
+       let mut expr = self.factor()?;
+
+    while self.matches(&[
+        TokenType::Plus,
+        TokenType::Minus,
+    ]) {
+        let operator = self.previous().clone();
+        let right = self.factor()?;
+
+        expr = Expr::Binary {
+            left: Box::new(expr),
+            operator,
+            right: Box::new(right),
+        };
     }
 
+    Ok(expr) 
+      
+    }
+ // TODO(you): spec 3.2, one rung of the precedence ladder.
     fn factor(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2, one rung of the precedence ladder.
-        todo!("factor")
+     let mut expr = self.unary()?;
+
+    while self.matches(&[
+        TokenType::Star,
+        TokenType::Slash,
+    ]) {
+        let operator = self.previous().clone();
+        let right = self.unary()?;
+
+        expr = Expr::Binary {
+            left: Box::new(expr),
+            operator,
+            right: Box::new(right),
+        };
     }
 
-    fn unary(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2: unary operators are right-associative.
+    Ok(expr)  
+        
+    }
+     // TODO(you): spec 3.2: unary operators are right-associative.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
+
+    fn unary(&mut self) -> Parsed<Expr> {
+       if self.matches(&[
+        TokenType::Bang,
+        TokenType::Minus,
+    ]) {
+        let operator = self.previous().clone();
+        let right = self.unary()?;
+
+        return Ok(Expr::Unary {
+            operator,
+            right: Box::new(right),
+        });
+    }
         self.call()
     }
 
