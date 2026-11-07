@@ -48,23 +48,17 @@ impl Parser {
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
     fn declaration(&mut self) -> Parsed<Stmt> {
-     let result = if self.matches(&[TokenType::Fun]) { // if the current token is a function declaration, then call the function to parse it
+     if self.matches(&[TokenType::Fun]) {
         self.fun_declaration()
-    } else if self.matches(&[TokenType::Var]) { // same thingzz
+    } else if self.matches(&[TokenType::Var]) {
         self.var_declaration()
     } else {
-        self.statement() // treat it like an ordinary statement yass
-    };
-
-    if result.is_err() {
-        self.synchronise();
+        self.statement()
     }
-
-    result
 }
        
       
-    }
+    
      // TODO(you): spec 3.1: a function declaration, its parameter list, and its body.
         //            Functions are hoisted into Program::functions.
 
@@ -91,7 +85,7 @@ impl Parser {
             )?;
 
             params.push(param.lexeme);
-
+    
             if !self.matches(&[TokenType::Comma]) {
                 break;
             }
@@ -125,7 +119,7 @@ impl Parser {
         slot: None,
     })
 }
-    }
+    
 // TODO(you): spec 3.1: 'var' name ( '=' expression )? ';'
     fn var_declaration(&mut self) -> Parsed<Stmt> {
         let name = self.consume( //get variable name stores it in name
@@ -167,11 +161,7 @@ impl Parser {
     fn statement_inner(&mut self) -> Parsed<Stmt> {
         if self.matches(&[TokenType::LBrace]) {
         let body = self.block()?;
-
-        Ok(Stmt::Block {
-            body,
-            locals: 0,
-        }) // know a block is starting
+        Ok(Stmt::Block { body, locals: 0 })
     } else if self.matches(&[TokenType::If]) {
         self.if_statement()
     } else if self.matches(&[TokenType::While]) {
@@ -180,42 +170,18 @@ impl Parser {
         self.return_statement()
     } else if self.matches(&[TokenType::Print]) {
         let value = self.expression()?;
-
-        self.consume(
-            TokenType::Semicolon,
-            "Expect ';' after value."
-        )?;
-
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Print(value))
     } else {
         let expr = self.expression()?;
-
-        self.consume(
-            TokenType::Semicolon,
-            "Expect ';' after expression."
-        )?;
-
+        self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
         Ok(Stmt::Expression(expr))
     }
 }
     
        
-        if self.check(TokenType::LBrace) || self.check(TokenType::If)
-            || self.check(TokenType::While) || self.check(TokenType::Return)
-        {
-            self.error("This statement form is not written yet.");
-            return Err(());
-        }
-        if self.matches(&[TokenType::Print]) {
-            let value = self.expression()?;
-            self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
-            Ok(Stmt::Print(value))
-        } else {
-            let expr = self.expression()?;
-            self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
-            Ok(Stmt::Expression(expr))
-        }
-    }
+       
+    
         // TODO(you): spec 3.1: 'return' expression? ';'
 
     fn return_statement(&mut self) -> Parsed<Stmt> {
@@ -333,31 +299,26 @@ impl Parser {
     fn assignment(&mut self) -> Parsed<Expr> {
       let expr = self.or()?;
 
-      if self.matches(&[TokenType::Equal]) {
-        let equals = self.previous().clone();
-
+    if self.matches(&[TokenType::Equal]) {
+        let equals = self.previous();
         let value = Box::new(self.assignment()?);
 
         match expr {
             Expr::Variable { name, at } => {
-                Ok(Expr::Assign {
-                    name,
-                    value,
-                    at,
-                })
+                Ok(Expr::Assign { name, value, at })
             }
-
             _ => {
-                self.error_at(&equals, "Invalid assignment target.");
+                self.error_at(&equals, "Cannot assign to this expression.");
                 Err(())
             }
         }
     } else {
         Ok(expr)
     }
+    }
       
        
-    }
+    
 // TODO(you): spec 3.2, one rung of the precedence ladder.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
@@ -370,7 +331,7 @@ impl Parser {
 
         expr = Expr::Logical {
             left: Box::new(expr),
-            operator,
+           op: operator,
             right: Box::new(right),
         };
     }
@@ -391,7 +352,7 @@ impl Parser {
 
         expr = Expr::Logical {
             left: Box::new(expr),
-            operator,
+            op: operator,
             right: Box::new(right),
         };
     }
@@ -416,7 +377,7 @@ impl Parser {
 
         expr = Expr::Binary {
             left: Box::new(expr),
-            operator,
+            op: operator,
             right: Box::new(right),
         };
     }
@@ -429,7 +390,7 @@ impl Parser {
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
     fn comparison(&mut self) -> Parsed<Expr> {
-      let mut expr = self.term()?;
+    let mut expr = self.term()?;
 
     while self.matches(&[
         TokenType::Greater,
@@ -442,31 +403,32 @@ impl Parser {
 
         expr = Expr::Binary {
             left: Box::new(expr),
-            operator,
+            op: operator,
             right: Box::new(right),
         };
-       
     }
-     // TODO(you): spec 3.2, one rung of the precedence ladder.
 
-    fn term(&mut self) -> Parsed<Expr> {
-       let mut expr = self.factor()?;
+    Ok(expr)
+}
 
-    while self.matches(&[
-        TokenType::Plus,
-        TokenType::Minus,
-    ]) {
+fn term(&mut self) -> Parsed<Expr> {
+    let mut expr = self.factor()?;
+
+    while self.matches(&[TokenType::Plus, TokenType::Minus]) {
         let operator = self.previous().clone();
         let right = self.factor()?;
 
         expr = Expr::Binary {
             left: Box::new(expr),
-            operator,
+            op: operator,
             right: Box::new(right),
         };
     }
 
-    Ok(expr) 
+    Ok(expr)
+    
+
+    
       
     }
  // TODO(you): spec 3.2, one rung of the precedence ladder.
@@ -482,7 +444,7 @@ impl Parser {
 
         expr = Expr::Binary {
             left: Box::new(expr),
-            operator,
+           op:  operator,
             right: Box::new(right),
         };
     }
@@ -503,7 +465,7 @@ impl Parser {
         let right = self.unary()?;
 
         return Ok(Expr::Unary {
-            operator,
+            op: operator,
             right: Box::new(right),
         });
     }
@@ -550,7 +512,7 @@ impl Parser {
 
     Ok(expr)
         
-        self.primary()
+        
     }
  // TODO(you): spec 3.2: literals, identifiers and grouping.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
@@ -574,10 +536,10 @@ impl Parser {
         return Ok(self.literal(Value::Nil));
     }
 
-     if self.matches(&[TokenType::String]) {
+     if self.matches(&[TokenType::Str]) {
         let text = self.previous().lexeme;
         let value = text[1..text.len() - 1].to_string();
-        return Ok(self.literal(Value::String(value)));
+        return Ok(self.literal(Value::Str(value)));
     }
 
     if self.matches(&[TokenType::Identifier]) {
@@ -599,7 +561,7 @@ impl Parser {
 
         return Ok(Expr::Grouping(Box::new(expr)));
     }
-    
+
         self.error("Expect expression.");
         Err(())
     }
@@ -634,7 +596,7 @@ impl Parser {
             | TokenType::Print
             | TokenType::Return => return,
 
-            _ => self.current += 1,
+            _ => {}
         }
         }
     }
