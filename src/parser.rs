@@ -512,22 +512,94 @@ impl Parser {
 
     /// A loop, not recursion: `f(1)(2)` is one callee called twice, and the grammar says
     /// `call → primary ( "(" arguments? ")" )*` for exactly that reason.
-    fn call(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2: call -> primary ( '(' arguments? ')' )*. That is a loop, not
+    // TODO(you): spec 3.2: call -> primary ( '(' arguments? ')' )*. That is a loop, not
         //            recursion; f(1)(2) is one callee called twice.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
-        self.primary()
+    fn call(&mut self) -> Parsed<Expr> {
+        let mut expr = self.primary()?;
+
+    loop {
+        if self.matches(&[TokenType::LParen]) {
+            let mut args = Vec::new();
+
+            if !self.check(TokenType::RParen) {
+                loop {
+                    args.push(self.expression()?);
+
+                    if !self.matches(&[TokenType::Comma]) {
+                        break;
+                    }
+                }
+            }
+
+            let paren = self.consume(
+                TokenType::RParen,
+                "Expect ')' after arguments."
+            )?;
+
+            expr = Expr::Call {
+                callee: Box::new(expr),
+                paren,
+                args,
+            };
+        } else {
+            break;
+        }
     }
 
-    fn primary(&mut self) -> Parsed<Expr> {
-        // TODO(you): spec 3.2: literals, identifiers and grouping.
+    Ok(expr)
+        
+        self.primary()
+    }
+ // TODO(you): spec 3.2: literals, identifiers and grouping.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
+    fn primary(&mut self) -> Parsed<Expr> {
+       
         if self.matches(&[TokenType::Number]) {
             let n = self.previous().lexeme.parse::<f64>().unwrap();
             return Ok(self.literal(Value::Number(n)));
         }
+
+         if self.matches(&[TokenType::False]) {
+        return Ok(self.literal(Value::Bool(false)));
+    }
+
+    if self.matches(&[TokenType::True]) {
+        return Ok(self.literal(Value::Bool(true)));
+    }
+
+    if self.matches(&[TokenType::Nil]) {
+        return Ok(self.literal(Value::Nil));
+    }
+
+     if self.matches(&[TokenType::String]) {
+        let text = self.previous().lexeme;
+        let value = text[1..text.len() - 1].to_string();
+        return Ok(self.literal(Value::String(value)));
+    }
+
+    if self.matches(&[TokenType::Identifier]) {
+        let name = self.previous();
+
+        return Ok(Expr::Variable {
+            name,
+            at: Resolved::Global,
+        });
+    }
+
+    if self.matches(&[TokenType::LParen]) {
+        let expr = self.expression()?;
+
+        self.consume(
+            TokenType::RParen,
+            "Expect ')' after expression."
+        )?;
+
+        return Ok(Expr::Grouping(Box::new(expr)));
+    }
+    
         self.error("Expect expression.");
         Err(())
     }
@@ -542,17 +614,28 @@ impl Parser {
     /// It always steps over at least one token before it looks, which is what guarantees
     /// the parse makes progress; a recovery that could stand still would hang the
     /// compiler on the file that triggered it.
-    fn synchronise(&mut self) {
-        // TODO(you): spec 5.2: after an error, discard tokens until just past a ';' or on a
+     // TODO(you): spec 5.2: after an error, discard tokens until just past a ';' or on a
         //            statement keyword, so one mistake costs one message.
         // TEMPORARY: enough of this rule to let the ones below it run. Replace it in its
         //            own week; the marking tests for it fail until you do.
+    fn synchronise(&mut self) {
+       
         self.depth = 0;
         while !self.at_end() {
             self.current += 1;
             if self.previous().kind == TokenType::Semicolon {
                 return;
             }
+             match self.peek().kind {
+            TokenType::Fun
+            | TokenType::Var
+            | TokenType::If
+            | TokenType::While
+            | TokenType::Print
+            | TokenType::Return => return,
+
+            _ => self.current += 1,
+        }
         }
     }
 
